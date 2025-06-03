@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Neon Retro Quantum Pixelator - Upload</title>
+</head>
+<body>
+    <h1>Upload an Image to My Pixelator</h1>
+    <form action="/" method="POST" enctype="multipart/form-data">
+        <input type="file" name="image" accept="image/*" required />
+        <button type="submit">Upload Image</button>
+    </form>
+    {% if filename %}
+    <h2>Test Uploaded Image Preview:</h2>
+    <img src="{{ url_for('static', filename='uploads/' + filename) }}" alt="Uploaded Image" style="max-width: 400px;"/>
+{% endif %}
+</body>
+</html>
