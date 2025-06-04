@@ -1,18 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Neon Retro Quantum Pixelator - Upload</title>
+    <meta charset="UTF-8">
+    <title>Neon Retro Quantum Pixelator</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #111;
+            color: #0f0;
+            text-align: center;
+            padding: 40px;
+        }
+        input[type="file"], input[type="submit"] {
+            margin: 20px;
+        }
+        img {
+            margin: 20px;
+            border: 2px solid #0f0;
+        }
+    </style>
 </head>
 <body>
-    <h1>Upload an Image to My Pixelator</h1>
-    <form action="/" method="POST" enctype="multipart/form-data">
-        <input type="file" name="image" accept="image/*" required />
-        <button type="submit">Upload Image</button>
+    <h1>Neon Retro Quantum Pixelator 🌌</h1>
+
+    <form method="post" enctype="multipart/form-data">
+        <input type="file" name="image" accept="image/png, image/jpeg" required>
+        <br>
+        <input type="submit" value="Upload and Pixelate">
     </form>
+
     {% if filename %}
-    <h2>Test Uploaded Image Preview:</h2>
-    <img src="{{ url_for('static', filename='uploads/' + filename) }}" alt="Uploaded Image" style="max-width: 400px;"/>
-{% endif %}
+        <h2>Original Image:</h2>
+        <img src="{{ url_for('static', filename='uploads/' + filename) }}" alt="Uploaded Image" style="max-width: 400px;">
+    {% endif %}
+
+    {% if pixelated_filename %}
+        <h2>Pixelated Image:</h2>
+        <img src="{{ url_for('static', filename='pixelated/' + pixelated_filename) }}" alt="Pixelated Image" style="max-width: 400px;">
+    {% endif %}
 </body>
 </html>
