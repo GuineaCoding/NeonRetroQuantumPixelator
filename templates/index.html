@@ -2,41 +2,547 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Neon Retro Quantum Pixelator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RetroFX Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --neon-green: #0f0;
+            --neon-pink: #f0f;
+            --bg-dark: #111;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Courier New', monospace;
-            background-color: #111;
-            color: #0f0;
+            font-family: 'Press Start 2P', cursive;
+            background: var(--bg-dark);
+            color: var(--neon-green);
+            margin: 0;
+            padding: 15px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .workshop {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 100%;
+        }
+
+        header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            padding: 10px 0;
+            border-bottom: 3px solid var(--neon-pink);
+        }
+
+        h1 {
+            font-size: 1.5rem;
             text-align: center;
-            padding: 40px;
+            margin: 0;
+            text-shadow: 0 0 5px var(--neon-green), 0 0 10px var(--neon-pink);
         }
-        input[type="file"], input[type="submit"] {
-            margin: 20px;
+
+        #export-btn {
+            background: #000;
+            border: 2px solid var(--neon-pink);
+            color: var(--neon-pink);
+            padding: 10px 15px;
+            font-family: inherit;
+            cursor: pointer;
+            font-size: 0.8rem;
         }
-        img {
-            margin: 20px;
-            border: 2px solid #0f0;
+
+        #export-btn:hover {
+            background: var(--neon-pink);
+            color: #000;
+        }
+
+        .workspace {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .effect-library {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            border: 2px solid var(--neon-green);
+            padding: 10px;
+        }
+
+        .effect-category {
+            flex: 1 1 150px;
+            min-width: 0;
+        }
+
+        .effect-category h3 {
+            margin: 0 0 10px 0;
+            font-size: 0.8rem;
+        }
+
+        .effect-category button {
+            display: block;
+            width: 100%;
+            margin-bottom: 5px;
+            background: black;
+            color: var(--neon-green);
+            border: 1px solid var(--neon-green);
+            padding: 8px;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+
+        .effect-category button:hover {
+            background: var(--neon-green);
+            color: black;
+        }
+
+        .canvas-container {
+            position: relative;
+            border: 3px dashed var(--neon-pink);
+            min-height: 300px;
+        }
+
+        #preview-canvas {
+            max-width: 100%;
+            display: none;
+        }
+
+        .drop-zone {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            padding: 20px;
+        }
+
+        .drop-zone p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .effect-controls {
+            border: 2px solid var(--neon-green);
+            padding: 15px;
+        }
+
+        .control-group {
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid var(--neon-pink);
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .control-group h4 {
+            color: var(--neon-pink);
+            margin-top: 0;
+            text-shadow: 0 0 5px var(--neon-pink);
+            font-size: 0.9rem;
+        }
+
+        .control-group label {
+            display: block;
+            margin: 10px 0;
+            font-size: 0.7rem;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 5px;
+            background: #333;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 15px;
+            height: 15px;
+            background: var(--neon-green);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        input[type="checkbox"] {
+            -webkit-appearance: none;
+            width: 15px;
+            height: 15px;
+            background: #000;
+            border: 2px solid var(--neon-green);
+            position: relative;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+
+        input[type="checkbox"]:checked::after {
+            content: "✓";
+            position: absolute;
+            color: var(--neon-green);
+            font-size: 12px;
+            top: -1px;
+            left: 1px;
+        }
+
+        .effect-stack {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            border-top: 3px solid var(--neon-green);
+            flex-wrap: wrap;
+        }
+
+        .active-effect {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid var(--neon-green);
+            padding: 5px 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.7rem;
+        }
+
+        .remove-effect {
+            background: none;
+            border: none;
+            color: red;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        /* Desktop styles */
+        @media (min-width: 768px) {
+            body {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .workspace {
+                display: grid;
+                grid-template-columns: 250px 1fr 250px;
+                gap: 20px;
+            }
+
+            .effect-library {
+                display: block;
+                flex-wrap: nowrap;
+            }
+
+            .effect-category {
+                flex: none;
+            }
+
+            .effect-category button {
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Neon Retro Quantum Pixelator 🌌</h1>
+    <div class="workshop">
+        <header>
+            <h1>Neon Retro Quantum Pixelator</h1>
+            <button id="export-btn">EXPORT (PNG)</button>
+        </header>
 
-    <form method="post" enctype="multipart/form-data">
-        <input type="file" name="image" accept="image/png, image/jpeg" required>
-        <br>
-        <input type="submit" value="Upload and Pixelate">
-    </form>
+        <div class="workspace">
+            <!-- Effect Library -->
+            <aside class="effect-library">
+                <div class="effect-category" data-category="pixel">
+                    <h3>⚙️ PIXEL</h3>
+                    <button data-effect="pixelate">PIXELATE</button>
+                    <button data-effect="8bit">8-BIT</button>
+                </div>
+                <div class="effect-category" data-category="crt">
+                    <h3>📺 CRT</h3>
+                    <button data-effect="crt_scanlines">SCANLINES</button>
+                </div>
+                <div class="effect-category" data-category="glitch">
+                    <h3>💢 GLITCH</h3>
+                    <button data-effect="vhs">VHS</button>
+                </div>
+            </aside>
 
-    {% if filename %}
-        <h2>Original Image:</h2>
-        <img src="{{ url_for('static', filename='uploads/' + filename) }}" alt="Uploaded Image" style="max-width: 400px;">
-    {% endif %}
+            <!-- Canvas Preview -->
+            <div class="canvas-container">
+                <canvas id="preview-canvas"></canvas>
+                <div class="drop-zone" id="drop-zone">
+                    <p>DRAG & DROP IMAGE HERE</p>
+                    <p>OR CLICK TO UPLOAD</p>
+                    <input type="file" id="file-input" accept="image/*">
+                </div>
+            </div>
 
-    {% if pixelated_filename %}
-        <h2>Pixelated Image:</h2>
-        <img src="{{ url_for('static', filename='pixelated/' + pixelated_filename) }}" alt="Pixelated Image" style="max-width: 400px;">
-    {% endif %}
+            <!-- Effect Controls -->
+            <aside class="effect-controls">
+                <div id="effect-params">
+                    <p style="font-size: 0.8rem;">SELECT AN EFFECT TO TWEAK</p>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Effect Stack -->
+        <div class="effect-stack" id="effect-stack"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Elements
+            const fileInput = document.getElementById('file-input');
+            const dropZone = document.getElementById('drop-zone');
+            const canvas = document.getElementById('preview-canvas');
+            const ctx = canvas.getContext('2d');
+            const effectParams = document.getElementById('effect-params');
+            const effectStack = document.getElementById('effect-stack');
+            const exportBtn = document.getElementById('export-btn');
+
+            let currentImage = null;
+            let activeEffects = [];
+
+            // Handle file selection
+            fileInput.addEventListener('change', handleFileUpload);
+            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.style.border = '3px dashed #0f0';
+            });
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.style.border = '3px dashed #f0f';
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.style.border = '3px dashed #f0f';
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileUpload();
+                }
+            });
+
+            // Effect buttons
+            document.querySelectorAll('.effect-library button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const effectName = button.dataset.effect;
+                    addEffect(effectName);
+                });
+            });
+
+            // Export button
+            exportBtn.addEventListener('click', exportImage);
+
+            // Functions
+            async function handleFileUpload() {
+                const file = fileInput.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append('image', file);
+
+                try {
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await response.json();
+
+                    if (data.error) {
+                        alert(data.error);
+                        return;
+                    }
+
+                    // Load image preview
+                    const img = new Image();
+                    img.src = `/static/uploads/${data.filename}`;
+                    img.onload = () => {
+                        // Scale down for mobile if needed
+                        const maxWidth = window.innerWidth * 0.9;
+                        const scale = Math.min(1, maxWidth / img.width);
+                        
+                        canvas.width = img.width * scale;
+                        canvas.height = img.height * scale;
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        canvas.style.display = 'block';
+                        dropZone.style.display = 'none';
+                        currentImage = data.filename;
+                    };
+                } catch (error) {
+                    alert('Upload failed: ' + error.message);
+                }
+            }
+
+            function addEffect(effectName) {
+                if (!currentImage) {
+                    alert('Upload an image first!');
+                    return;
+                }
+
+                // Check if effect already active
+                if (activeEffects.some(e => e.name === effectName)) {
+                    alert('Effect already applied!');
+                    return;
+                }
+
+                // Add to active effects
+                const effect = {
+                    name: effectName,
+                    params: {}
+                };
+                
+                // Default parameters for pixelate
+                if (effectName === 'pixelate') {
+                    effect.params = {
+                        size: 10,
+                        palette_size: 16,
+                        dither: true
+                    };
+                }
+                
+                activeEffects.push(effect);
+                updateEffectStack();
+                updateEffectControls(effectName);
+                processEffects();
+            }
+
+            function updateEffectStack() {
+                effectStack.innerHTML = '';
+                activeEffects.forEach((effect, index) => {
+                    const effectElement = document.createElement('div');
+                    effectElement.className = 'active-effect';
+                    effectElement.innerHTML = `
+                        <span>${effect.name.toUpperCase()}</span>
+                        <button class="remove-effect" data-index="${index}">×</button>
+                    `;
+                    effectStack.appendChild(effectElement);
+                });
+
+                // Add remove event listeners
+                document.querySelectorAll('.remove-effect').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const index = parseInt(e.target.dataset.index);
+                        activeEffects.splice(index, 1);
+                        updateEffectStack();
+                        processEffects();
+                    });
+                });
+            }
+
+            function updateEffectControls(effectName) {
+                let html = '';
+                
+                if (effectName === 'pixelate') {
+                    const effect = activeEffects.find(e => e.name === 'pixelate');
+                    html = `
+                        <div class="control-group">
+                            <h4>PIXELATE</h4>
+                            <label>PIXEL SIZE: <span id="pixel-size-value">${effect.params.size}</span>
+                                <input type="range" id="pixel-size" min="5" max="50" value="${effect.params.size}">
+                            </label>
+                            <label>COLORS: <span id="palette-size-value">${effect.params.palette_size}</span>
+                                <input type="range" id="palette-size" min="2" max="32" value="${effect.params.palette_size}">
+                            </label>
+                            <label>
+                                <input type="checkbox" id="dither" ${effect.params.dither ? 'checked' : ''}> DITHERING
+                            </label>
+                        </div>
+                    `;
+                } else {
+                    html = `<p style="font-size: 0.8rem;">No parameters for this effect</p>`;
+                }
+                
+                effectParams.innerHTML = html;
+                
+                // Add event listeners for pixelate controls
+                if (effectName === 'pixelate') {
+                    const pixelSizeSlider = document.getElementById('pixel-size');
+                    const paletteSizeSlider = document.getElementById('palette-size');
+                    const ditherCheckbox = document.getElementById('dither');
+                    
+                    const updatePixelEffect = () => {
+                        const effect = activeEffects.find(e => e.name === 'pixelate');
+                        if (effect) {
+                            effect.params = {
+                                size: parseInt(pixelSizeSlider.value),
+                                palette_size: parseInt(paletteSizeSlider.value),
+                                dither: ditherCheckbox.checked
+                            };
+                            document.getElementById('pixel-size-value').textContent = pixelSizeSlider.value;
+                            document.getElementById('palette-size-value').textContent = paletteSizeSlider.value;
+                            processEffects();
+                        }
+                    };
+                    
+                    pixelSizeSlider.addEventListener('input', updatePixelEffect);
+                    paletteSizeSlider.addEventListener('input', updatePixelEffect);
+                    ditherCheckbox.addEventListener('change', updatePixelEffect);
+                }
+            }
+
+            async function processEffects() {
+                if (!currentImage || activeEffects.length === 0) return;
+
+                try {
+                    const response = await fetch('/process', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            filename: currentImage,
+                            effects: activeEffects
+                        })
+                    });
+                    const data = await response.json();
+
+                    if (data.error) {
+                        alert(data.error);
+                        return;
+                    }
+
+                    // Update preview
+                    const img = new Image();
+                    img.src = data.processed_url;
+                    img.onload = () => {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    };
+                } catch (error) {
+                    alert('Processing failed: ' + error.message);
+                }
+            }
+
+            function exportImage() {
+                if (!currentImage) {
+                    alert('No image to export!');
+                    return;
+                }
+                
+                const link = document.createElement('a');
+                link.download = 'retrofx-pixelated.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }
+        });
+    </script>
 </body>
 </html>
