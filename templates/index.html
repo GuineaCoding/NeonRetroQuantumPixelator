@@ -273,15 +273,6 @@
                 <div class="effect-category" data-category="pixel">
                     <h3>⚙️ PIXEL</h3>
                     <button data-effect="pixelate">PIXELATE</button>
-                    <button data-effect="8bit">8-BIT</button>
-                </div>
-                <div class="effect-category" data-category="crt">
-                    <h3>📺 CRT</h3>
-                    <button data-effect="crt_scanlines">SCANLINES</button>
-                </div>
-                <div class="effect-category" data-category="glitch">
-                    <h3>💢 GLITCH</h3>
-                    <button data-effect="vhs">VHS</button>
                 </div>
             </aside>
 
@@ -298,7 +289,7 @@
             <!-- Effect Controls -->
             <aside class="effect-controls">
                 <div id="effect-params">
-                    <p style="font-size: 0.8rem;">SELECT AN EFFECT TO TWEAK</p>
+                    <p style="font-size: 0.8rem;">SELECT PIXELATE TO TWEAK</p>
                 </div>
             </aside>
         </div>
@@ -406,19 +397,14 @@
                 // Add to active effects
                 const effect = {
                     name: effectName,
-                    params: {}
-                };
-                
-                // Default parameters for pixelate
-                if (effectName === 'pixelate') {
-                    effect.params = {
+                    params: {
                         size: 10,
                         palette_size: 16,
                         dither: true
-                    };
-                }
+                    }
+                };
                 
-                activeEffects.push(effect);
+                activeEffects = [effect]; // Only allow one effect at a time
                 updateEffectStack();
                 updateEffectControls(effectName);
                 processEffects();
@@ -466,13 +452,10 @@
                             </label>
                         </div>
                     `;
-                } else {
-                    html = `<p style="font-size: 0.8rem;">No parameters for this effect</p>`;
                 }
                 
                 effectParams.innerHTML = html;
                 
-                // Add event listeners for pixelate controls
                 if (effectName === 'pixelate') {
                     const pixelSizeSlider = document.getElementById('pixel-size');
                     const paletteSizeSlider = document.getElementById('palette-size');

@@ -1,8 +1,7 @@
 import os
-from flask import Flask, request, render_template, jsonify, send_from_directory
+from flask import Flask, request, render_template, jsonify
 from werkzeug.utils import secure_filename
-from PIL import Image, ImageFilter, ImageOps
-import numpy as np
+from PIL import Image
 import time
 
 app = Flask(__name__)
@@ -11,12 +10,6 @@ app = Flask(__name__)
 UPLOAD_FOLDER = 'static/uploads'
 PROCESSED_FOLDER = 'static/processed'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
-EFFECTS = {
-    'pixelate': {'size': 10},
-    'crt_scanlines': {'opacity': 50},
-    '8bit': {'palette_size': 16},
-    'vhs': {'glitch_intensity': 30}
-}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB limit
@@ -27,48 +20,23 @@ os.makedirs(PROCESSED_FOLDER, exist_ok=True)
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def apply_effect(img, effect_name, params):
-    if effect_name == 'pixelate':
-        # Enhanced pixelation with all controls
-        pixel_size = params.get('size', 10)
-        palette_size = params.get('palette_size', 16)
-        dither = params.get('dither', False)
-        
-        # Pixelate
-        small_size = (max(1, img.width // pixel_size), max(1, img.height // pixel_size))
-        img_small = img.resize(small_size, Image.NEAREST)
-        result = img_small.resize(img.size, Image.NEAREST)
-        
-        # Color reduction
-        if palette_size < 256:
-            dither_method = Image.Dither.FLOYDSTEINBERG if dither else Image.Dither.NONE
-            result = result.quantize(colors=palette_size, dither=dither_method)
-        
-        return result.convert('RGB')
+def pixelate_image(img, pixel_size=10, palette_size=16, dither=True):
+    """Apply pixelation effect with color reduction"""
+    # Pixelate
+    small_size = (max(1, img.width // pixel_size)), max(1, img.height // pixel_size)
+    img_small = img.resize(small_size, Image.NEAREST)
+    result = img_small.resize(img.size, Image.NEAREST)
     
-    elif effect_name == 'crt_scanlines':
-        opacity = params.get('opacity', 50) / 100
-        scanline = Image.new('L', (2, 2), 255)
-        scanline.putpixel((0, 1), int(255 * (1 - opacity)))
-        scanline = scanline.resize(img.size, Image.NEAREST)
-        return Image.composite(img, Image.new('RGB', img.size, 'black'), scanline)
+    # Color reduction
+    if palette_size < 256:
+        dither_method = Image.Dither.FLOYDSTEINBERG if dither else Image.Dither.NONE
+        result = result.quantize(colors=palette_size, dither=dither_method)
     
-    elif effect_name == '8bit':
-        palette_size = params.get('palette_size', 16)
-        return img.quantize(colors=palette_size).convert('RGB')
-    
-    elif effect_name == 'vhs':
-        # Simulate VHS glitch by shifting RGB channels
-        arr = np.array(img)
-        r = np.roll(arr[:, :, 0], params.get('glitch_intensity', 5), axis=1)
-        g = np.roll(arr[:, :, 1], -params.get('glitch_intensity', 3), axis=1)
-        return Image.fromarray(np.stack([r, g, arr[:, :, 2]], axis=-1))
-    
-    return img
+    return result.convert('RGB')
 
-@app.route('/', methods=['GET'])
+@app.route('/')
 def index():
-    return render_template('index.html', effects=EFFECTS)
+    return render_template('index.html')
 
 @app.route('/upload', methods=['POST'])
 def upload():
@@ -99,8 +67,10 @@ def process():
     try:
         img = Image.open(os.path.join(UPLOAD_FOLDER, filename))
         
-        for effect in effects:
-            img = apply_effect(img, effect['name'], effect['params'])
+        # Only process pixelate effect (ignore others)
+        pixelate_effect = next((e for e in effects if e['name'] == 'pixelate'), None)
+        if pixelate_effect:
+            img = pixelate_image(img, **pixelate_effect['params'])
         
         output_filename = f"processed_{filename}"
         output_path = os.path.join(PROCESSED_FOLDER, output_filename)
@@ -112,4 +82,4 @@ def process():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
