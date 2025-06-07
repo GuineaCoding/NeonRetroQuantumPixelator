@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Scale down for mobile if needed
                 const maxWidth = window.innerWidth * 0.9;
                 const scale = Math.min(1, maxWidth / img.width);
-                
+
                 canvas.width = img.width * scale;
                 canvas.height = img.height * scale;
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -101,12 +101,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const effect = {
             name: effectName,
             params: {
-                size: 10,
+                pixel_size: 10,  // Changed from 'size'
                 palette_size: 16,
                 dither: true
             }
         };
-        
+
         activeEffects = [effect]; // Only allow one effect at a time
         updateEffectStack();
         updateEffectControls(effectName);
@@ -137,15 +137,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateEffectControls(effectName) {
         let html = '';
-        
+
         if (effectName === 'pixelate') {
             const effect = activeEffects.find(e => e.name === 'pixelate');
             html = `
                 <div class="control-group">
                     <h4>PIXELATE</h4>
-                    <label>PIXEL SIZE: <span id="pixel-size-value">${effect.params.size}</span>
-                        <input type="range" id="pixel-size" min="5" max="50" value="${effect.params.size}">
-                    </label>
+                    <label>PIXEL SIZE: <span id="pixel-size-value">10</span>
+                         <input type="range" id="pixel-size" min="5" max="50" value="10">
+                        </label>
                     <label>COLORS: <span id="palette-size-value">${effect.params.palette_size}</span>
                         <input type="range" id="palette-size" min="2" max="32" value="${effect.params.palette_size}">
                     </label>
@@ -158,22 +158,22 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             applyBtn.style.display = 'none';
         }
-        
+
         effectParams.innerHTML = html;
-        
+
         if (effectName === 'pixelate') {
             const pixelSizeSlider = document.getElementById('pixel-size');
             const paletteSizeSlider = document.getElementById('palette-size');
             const ditherCheckbox = document.getElementById('dither');
-            
+
             pixelSizeSlider.addEventListener('input', () => {
                 const effect = activeEffects.find(e => e.name === 'pixelate');
                 if (effect) {
-                    effect.params.size = parseInt(pixelSizeSlider.value);
+                    effect.params.pixel_size = parseInt(pixelSizeSlider.value);  // Changed from 'size'
                     document.getElementById('pixel-size-value').textContent = pixelSizeSlider.value;
                 }
             });
-            
+
             paletteSizeSlider.addEventListener('input', () => {
                 const effect = activeEffects.find(e => e.name === 'pixelate');
                 if (effect) {
@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.getElementById('palette-size-value').textContent = paletteSizeSlider.value;
                 }
             });
-            
+
             ditherCheckbox.addEventListener('change', () => {
                 const effect = activeEffects.find(e => e.name === 'pixelate');
                 if (effect) {
@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             applyBtn.disabled = true;
             applyBtn.textContent = 'PROCESSING...';
-            
+
             const response = await fetch('/process', {
                 method: 'POST',
                 headers: {
@@ -236,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('No image to export!');
             return;
         }
-        
+
         const link = document.createElement('a');
         link.download = 'retrofx-pixelated.png';
         link.href = canvas.toDataURL('image/png');
