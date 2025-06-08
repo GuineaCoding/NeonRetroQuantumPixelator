@@ -65,18 +65,32 @@ def process():
         return jsonify({'error': 'Filename missing'}), 400
     
     try:
-        img = Image.open(os.path.join(UPLOAD_FOLDER, filename))
+        # Validate file exists
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        if not os.path.exists(filepath):
+            return jsonify({'error': 'File not found'}), 404
         
-        # Only process pixelate effect (ignore others)
-        pixelate_effect = next((e for e in effects if e['name'] == 'pixelate'), None)
-        if pixelate_effect:
-            img = pixelate_image(img, **pixelate_effect['params'])
-        
-        output_filename = f"processed_{filename}"
-        output_path = os.path.join(PROCESSED_FOLDER, output_filename)
-        img.save(output_path)
-        
-        return jsonify({'processed_url': f"/static/processed/{output_filename}"})
+        # Open image with explicit close
+        with Image.open(filepath) as img:
+            # Process effects
+            pixelate_effect = next((e for e in effects if e['name'] == 'pixelate'), None)
+            if pixelate_effect:
+                img = pixelate_image(
+                    img,
+                    pixel_size=pixelate_effect['params'].get('pixel_size', 10),
+                    palette_size=pixelate_effect['params'].get('palette_size', 16),
+                    dither=pixelate_effect['params'].get('dither', True)
+                )
+            
+            # Save processed image
+            output_filename = f"processed_{int(time.time())}_{filename}"
+            output_path = os.path.join(PROCESSED_FOLDER, output_filename)
+            img.save(output_path)
+            
+            return jsonify({
+                'processed_url': f"/static/processed/{output_filename}",
+                'filename': output_filename
+            })
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500

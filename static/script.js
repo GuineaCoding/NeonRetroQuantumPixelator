@@ -11,7 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentImage = null;
     let activeEffects = [];
-
+    let processing = false;
+    let currentImageObj = null;
     // Handle file selection
     fileInput.addEventListener('change', handleFileUpload);
     dropZone.addEventListener('click', () => fileInput.click());
@@ -192,11 +193,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function processEffects() {
-        if (!currentImage || activeEffects.length === 0) return;
+        if (!currentImage || activeEffects.length === 0 || processing) return;
 
         try {
+            processing = true;
             applyBtn.disabled = true;
             applyBtn.textContent = 'PROCESSING...';
+
+            // Clear previous image if exists
+            if (currentImageObj) {
+                currentImageObj = null;
+            }
 
             const response = await fetch('/process', {
                 method: 'POST',
@@ -205,27 +212,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: JSON.stringify({
                     filename: currentImage,
-                    effects: activeEffects
+                    effects: activeEffects.map(effect => ({
+                        name: effect.name,
+                        params: effect.params
+                    }))
                 })
             });
+
+            if (!response.ok) {
+                throw new Error('Server error');
+            }
+
             const data = await response.json();
 
             if (data.error) {
-                alert(data.error);
-                return;
+                throw new Error(data.error);
             }
 
-            // Update preview
-            const img = new Image();
-            img.src = data.processed_url;
-            img.onload = () => {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            // Clear previous image
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Create new image object
+            currentImageObj = new Image();
+            currentImageObj.onload = () => {
+                ctx.drawImage(currentImageObj, 0, 0, canvas.width, canvas.height);
+                processing = false;
                 applyBtn.disabled = false;
                 applyBtn.textContent = 'APPLY EFFECT';
             };
+            currentImageObj.onerror = () => {
+                throw new Error('Failed to load processed image');
+            };
+            currentImageObj.src = data.processed_url + '?t=' + Date.now(); // Cache busting
+
         } catch (error) {
+            console.error('Processing error:', error);
             alert('Processing failed: ' + error.message);
+            processing = false;
             applyBtn.disabled = false;
             applyBtn.textContent = 'APPLY EFFECT';
         }
