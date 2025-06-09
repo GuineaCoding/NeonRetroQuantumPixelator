@@ -55,6 +55,45 @@ def upload():
     
     return jsonify({'error': 'Invalid file type'}), 400
 
+def vhs_glitch_effect(img, warp_intensity=5, color_shift=2, scanline_intensity=0.5, noise_amount=0.3):
+    """Apply VHS-style glitch effects"""
+    import numpy as np
+    from PIL import Image, ImageDraw, ImageOps
+    
+    # Convert to numpy array for processing
+    arr = np.array(img)
+    
+    # 1. Color shift (RGB channel offset)
+    shifted = np.zeros_like(arr)
+    shift_amount = color_shift
+    shifted[:, shift_amount:] = arr[:, :-shift_amount]  # Red channel
+    shifted[:, :shift_amount] = arr[:, -shift_amount:]  # Wrap around
+    
+    # 2. Warp effect (horizontal distortion)
+    if warp_intensity > 0:
+        height, width = arr.shape[:2]
+        for y in range(height):
+            offset = int(warp_intensity * np.sin(y / 20))
+            shifted[y] = np.roll(shifted[y], offset, axis=0)
+    
+    # 3. Scanlines
+    if scanline_intensity > 0:
+        overlay = Image.new('L', img.size, 255)
+        draw = ImageDraw.Draw(overlay)
+        for y in range(0, img.size[1], 2):
+            draw.line([(0, y), (img.size[0], y)], fill=int(255 * (1 - scanline_intensity)))
+        arr = np.minimum(arr, np.array(overlay)[..., np.newaxis])
+    
+    # 4. Noise
+    if noise_amount > 0:
+        noise = np.random.randint(0, int(255 * noise_amount), arr.shape[:2])
+        noise = np.dstack([noise]*3)  # Convert to RGB
+        arr = np.where(noise < (255 * noise_amount / 2), arr - noise, arr + noise)
+        arr = np.clip(arr, 0, 255)
+    
+    return Image.fromarray(arr.astype('uint8'))
+
+# Update the process function to handle VHS effect
 @app.route('/process', methods=['POST'])
 def process():
     data = request.json
@@ -65,22 +104,24 @@ def process():
         return jsonify({'error': 'Filename missing'}), 400
     
     try:
-        # Validate file exists
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-        if not os.path.exists(filepath):
-            return jsonify({'error': 'File not found'}), 404
-        
-        # Open image with explicit close
-        with Image.open(filepath) as img:
-            # Process effects
-            pixelate_effect = next((e for e in effects if e['name'] == 'pixelate'), None)
-            if pixelate_effect:
-                img = pixelate_image(
-                    img,
-                    pixel_size=pixelate_effect['params'].get('pixel_size', 10),
-                    palette_size=pixelate_effect['params'].get('palette_size', 16),
-                    dither=pixelate_effect['params'].get('dither', True)
-                )
+        with Image.open(os.path.join(UPLOAD_FOLDER, filename)) as img:
+            # Process all active effects
+            for effect in effects:
+                if effect['name'] == 'pixelate':
+                    img = pixelate_image(
+                        img,
+                        pixel_size=effect['params'].get('pixel_size', 10),
+                        palette_size=effect['params'].get('palette_size', 16),
+                        dither=effect['params'].get('dither', True)
+                    )
+                elif effect['name'] == 'vhs':
+                    img = vhs_glitch_effect(
+                        img,
+                        warp_intensity=effect['params'].get('warp_intensity', 5),
+                        color_shift=effect['params'].get('color_shift', 2),
+                        scanline_intensity=effect['params'].get('scanline_intensity', 0.5),
+                        noise_amount=effect['params'].get('noise_amount', 0.3)
+                    )
             
             # Save processed image
             output_filename = f"processed_{int(time.time())}_{filename}"

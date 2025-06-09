@@ -87,16 +87,32 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Add to active effects
+        // Add to active effects with default parameters
         const effect = {
             name: effectName,
             params: {}
         };
-        activeEffects.push(effect);
+        
+        if (effectName === 'pixelate') {
+            effect.params = {
+                pixel_size: 10,
+                palette_size: 16,
+                dither: true
+            };
+        } else if (effectName === 'vhs') {
+            effect.params = {
+                warp_intensity: 5,
+                color_shift: 2,
+                scanline_intensity: 0.5,
+                noise_amount: 0.3
+            };
+        }
+
+        activeEffects = [effect]; 
         updateEffectStack();
         updateEffectControls(effectName);
-        processEffects();
     }
+
 
     function updateEffectStack() {
         effectStack.innerHTML = '';
@@ -121,60 +137,82 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-function updateEffectControls(effectName) {
-    let html = '';
-    
-    if (effectName === 'pixelate') {
-        html = `
+    function updateEffectControls(effectName) {
+        let html = '';
+
+        if (effectName === 'pixelate') {
+            const effect = activeEffects.find(e => e.name === 'pixelate');
+            html = `
             <div class="control-group">
                 <h4>PIXELATE</h4>
-                <label>PIXEL SIZE: <span id="pixel-size-value">10</span>
-                    <input type="range" id="pixel-size" min="5" max="50" value="10">
+                <label>PIXEL SIZE: <span id="pixel-size-value">${effect.params.pixel_size}</span>
+                    <input type="range" id="pixel-size" min="5" max="50" value="${effect.params.pixel_size}">
                 </label>
-                <label>COLORS: <span id="palette-size-value">16</span>
-                    <input type="range" id="palette-size" min="2" max="32" value="16">
+                <label>COLORS: <span id="palette-size-value">${effect.params.palette_size}</span>
+                    <input type="range" id="palette-size" min="2" max="32" value="${effect.params.palette_size}">
                 </label>
                 <label>
-                    <input type="checkbox" id="dither" checked> DITHERING
+                    <input type="checkbox" id="dither" ${effect.params.dither ? 'checked' : ''}> DITHERING
                 </label>
             </div>
         `;
-    }
-    // Add other effect controls here...
+        } else if (effectName === 'vhs') {
+            const effect = activeEffects.find(e => e.name === 'vhs');
+            html = `
+            <div class="control-group">
+                <h4>VHS GLITCH</h4>
+                <label>WARP: <span id="vhs-warp-value">${effect.params.warp_intensity}</span>
+                    <input type="range" id="vhs-warp" min="0" max="10" value="${effect.params.warp_intensity}">
+                </label>
+                <label>COLOR SHIFT: <span id="vhs-shift-value">${effect.params.color_shift}</span>
+                    <input type="range" id="vhs-shift" min="0" max="5" value="${effect.params.color_shift}">
+                </label>
+                <label>SCANLINES: <span id="vhs-scanline-value">${Math.round(effect.params.scanline_intensity * 100)}%</span>
+                    <input type="range" id="vhs-scanline" min="0" max="100" value="${effect.params.scanline_intensity * 100}">
+                </label>
+                <label>NOISE: <span id="vhs-noise-value">${Math.round(effect.params.noise_amount * 100)}%</span>
+                    <input type="range" id="vhs-noise" min="0" max="100" value="${effect.params.noise_amount * 100}">
+                </label>
+            </div>
+        `;
+        } else {
+            applyBtn.style.display = 'none';
+        }
+
+        effectParams.innerHTML = html;
+        applyBtn.style.display = 'block';
+
     
-    effectParams.innerHTML = html;
-    
-    // Add event listeners for pixelate controls
-    if (effectName === 'pixelate') {
-        const pixelSizeSlider = document.getElementById('pixel-size');
-        const paletteSizeSlider = document.getElementById('palette-size');
-        const ditherCheckbox = document.getElementById('dither');
-        
-        const updatePixelEffect = () => {
-            const effect = activeEffects.find(e => e.name === 'pixelate');
-            if (effect) {
-                effect.params = {
-                    size: parseInt(pixelSizeSlider.value),
-                    palette_size: parseInt(paletteSizeSlider.value),
-                    dither: ditherCheckbox.checked
-                };
-                processEffects();
-            }
-        };
-        
-        pixelSizeSlider.addEventListener('input', (e) => {
-            document.getElementById('pixel-size-value').textContent = e.target.value;
-            updatePixelEffect();
-        });
-        
-        paletteSizeSlider.addEventListener('input', (e) => {
-            document.getElementById('palette-size-value').textContent = e.target.value;
-            updatePixelEffect();
-        });
-        
-        ditherCheckbox.addEventListener('change', updatePixelEffect);
+        if (effectName === 'pixelate') {
+            // ... existing pixelate event listeners ...
+        } else if (effectName === 'vhs') {
+            const warpSlider = document.getElementById('vhs-warp');
+            const shiftSlider = document.getElementById('vhs-shift');
+            const scanlineSlider = document.getElementById('vhs-scanline');
+            const noiseSlider = document.getElementById('vhs-noise');
+
+            const updateVHSEffect = () => {
+                const effect = activeEffects.find(e => e.name === 'vhs');
+                if (effect) {
+                    effect.params = {
+                        warp_intensity: parseInt(warpSlider.value),
+                        color_shift: parseInt(shiftSlider.value),
+                        scanline_intensity: parseInt(scanlineSlider.value) / 100,
+                        noise_amount: parseInt(noiseSlider.value) / 100
+                    };
+                    document.getElementById('vhs-warp-value').textContent = warpSlider.value;
+                    document.getElementById('vhs-shift-value').textContent = shiftSlider.value;
+                    document.getElementById('vhs-scanline-value').textContent = scanlineSlider.value + '%';
+                    document.getElementById('vhs-noise-value').textContent = noiseSlider.value + '%';
+                }
+            };
+
+            warpSlider.addEventListener('input', updateVHSEffect);
+            shiftSlider.addEventListener('input', updateVHSEffect);
+            scanlineSlider.addEventListener('input', updateVHSEffect);
+            noiseSlider.addEventListener('input', updateVHSEffect);
+        }
     }
-}
 
     async function processEffects() {
         if (!currentImage || activeEffects.length === 0) return;
