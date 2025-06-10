@@ -7,9 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const effectParams = document.getElementById('effect-params');
     const effectStack = document.getElementById('effect-stack');
     const exportBtn = document.getElementById('export-btn');
+    const applyBtn = document.getElementById('apply-btn');
 
     let currentImage = null;
     let activeEffects = [];
+    let processing = false;
 
     // Handle file selection
     fileInput.addEventListener('change', handleFileUpload);
@@ -41,6 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Export button
     exportBtn.addEventListener('click', exportImage);
 
+    // Apply button
+    applyBtn.addEventListener('click', processEffects);
+
     // Functions
     async function handleFileUpload() {
         const file = fileInput.files[0];
@@ -61,12 +66,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // Load image preview
             const img = new Image();
             img.src = `/static/uploads/${data.filename}`;
             img.onload = () => {
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
+                // Scale down for mobile if needed
+                const maxWidth = window.innerWidth * 0.9;
+                const scale = Math.min(1, maxWidth / img.width);
+                
+                canvas.width = img.width * scale;
+                canvas.height = img.height * scale;
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 canvas.style.display = 'block';
                 dropZone.style.display = 'none';
                 currentImage = data.filename;
@@ -82,6 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Check if effect already active
         if (activeEffects.some(e => e.name === effectName)) {
             alert('Effect already applied!');
             return;
@@ -92,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
             name: effectName,
             params: {}
         };
-        
+
         if (effectName === 'pixelate') {
             effect.params = {
                 pixel_size: 10,
@@ -108,17 +119,17 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
-        activeEffects = [effect]; 
+        activeEffects = [effect]; // Only allow one effect at a time
         updateEffectStack();
         updateEffectControls(effectName);
     }
-
 
     function updateEffectStack() {
         effectStack.innerHTML = '';
         activeEffects.forEach((effect, index) => {
             const effectElement = document.createElement('div');
             effectElement.className = 'active-effect';
+            effectElement.dataset.effect = effect.name;
             effectElement.innerHTML = `
                 <span>${effect.name.toUpperCase()}</span>
                 <button class="remove-effect" data-index="${index}">×</button>
@@ -139,58 +150,77 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateEffectControls(effectName) {
         let html = '';
-
+        
         if (effectName === 'pixelate') {
             const effect = activeEffects.find(e => e.name === 'pixelate');
             html = `
-            <div class="control-group">
-                <h4>PIXELATE</h4>
-                <label>PIXEL SIZE: <span id="pixel-size-value">${effect.params.pixel_size}</span>
-                    <input type="range" id="pixel-size" min="5" max="50" value="${effect.params.pixel_size}">
-                </label>
-                <label>COLORS: <span id="palette-size-value">${effect.params.palette_size}</span>
-                    <input type="range" id="palette-size" min="2" max="32" value="${effect.params.palette_size}">
-                </label>
-                <label>
-                    <input type="checkbox" id="dither" ${effect.params.dither ? 'checked' : ''}> DITHERING
-                </label>
-            </div>
-        `;
+                <div class="control-group">
+                    <h4>PIXELATE</h4>
+                    <label>PIXEL SIZE: <span id="pixel-size-value">${effect.params.pixel_size}</span>
+                        <input type="range" id="pixel-size" min="5" max="50" value="${effect.params.pixel_size}">
+                    </label>
+                    <label>COLORS: <span id="palette-size-value">${effect.params.palette_size}</span>
+                        <input type="range" id="palette-size" min="2" max="32" value="${effect.params.palette_size}">
+                    </label>
+                    <label>
+                        <input type="checkbox" id="dither" ${effect.params.dither ? 'checked' : ''}> DITHERING
+                    </label>
+                </div>
+            `;
         } else if (effectName === 'vhs') {
             const effect = activeEffects.find(e => e.name === 'vhs');
             html = `
-            <div class="control-group">
-                <h4>VHS GLITCH</h4>
-                <label>WARP: <span id="vhs-warp-value">${effect.params.warp_intensity}</span>
-                    <input type="range" id="vhs-warp" min="0" max="10" value="${effect.params.warp_intensity}">
-                </label>
-                <label>COLOR SHIFT: <span id="vhs-shift-value">${effect.params.color_shift}</span>
-                    <input type="range" id="vhs-shift" min="0" max="5" value="${effect.params.color_shift}">
-                </label>
-                <label>SCANLINES: <span id="vhs-scanline-value">${Math.round(effect.params.scanline_intensity * 100)}%</span>
-                    <input type="range" id="vhs-scanline" min="0" max="100" value="${effect.params.scanline_intensity * 100}">
-                </label>
-                <label>NOISE: <span id="vhs-noise-value">${Math.round(effect.params.noise_amount * 100)}%</span>
-                    <input type="range" id="vhs-noise" min="0" max="100" value="${effect.params.noise_amount * 100}">
-                </label>
-            </div>
-        `;
+                <div class="control-group">
+                    <h4>VHS GLITCH</h4>
+                    <label>WARP: <span id="vhs-warp-value">${effect.params.warp_intensity}</span>
+                        <input type="range" id="vhs-warp" min="0" max="10" value="${effect.params.warp_intensity}">
+                    </label>
+                    <label>COLOR SHIFT: <span id="vhs-shift-value">${effect.params.color_shift}</span>
+                        <input type="range" id="vhs-shift" min="0" max="5" value="${effect.params.color_shift}">
+                    </label>
+                    <label>SCANLINES: <span id="vhs-scanline-value">${Math.round(effect.params.scanline_intensity * 100)}%</span>
+                        <input type="range" id="vhs-scanline" min="0" max="100" value="${effect.params.scanline_intensity * 100}">
+                    </label>
+                    <label>NOISE: <span id="vhs-noise-value">${Math.round(effect.params.noise_amount * 100)}%</span>
+                        <input type="range" id="vhs-noise" min="0" max="100" value="${effect.params.noise_amount * 100}">
+                    </label>
+                </div>
+            `;
         } else {
             applyBtn.style.display = 'none';
         }
-
+        
         effectParams.innerHTML = html;
         applyBtn.style.display = 'block';
-
-    
+        
+        // Add event listeners for the current effect's controls
         if (effectName === 'pixelate') {
-            // ... existing pixelate event listeners ...
+            const pixelSizeSlider = document.getElementById('pixel-size');
+            const paletteSizeSlider = document.getElementById('palette-size');
+            const ditherCheckbox = document.getElementById('dither');
+            
+            const updatePixelEffect = () => {
+                const effect = activeEffects.find(e => e.name === 'pixelate');
+                if (effect) {
+                    effect.params = {
+                        pixel_size: parseInt(pixelSizeSlider.value),
+                        palette_size: parseInt(paletteSizeSlider.value),
+                        dither: ditherCheckbox.checked
+                    };
+                    document.getElementById('pixel-size-value').textContent = pixelSizeSlider.value;
+                    document.getElementById('palette-size-value').textContent = paletteSizeSlider.value;
+                }
+            };
+            
+            pixelSizeSlider.addEventListener('input', updatePixelEffect);
+            paletteSizeSlider.addEventListener('input', updatePixelEffect);
+            ditherCheckbox.addEventListener('change', updatePixelEffect);
         } else if (effectName === 'vhs') {
             const warpSlider = document.getElementById('vhs-warp');
             const shiftSlider = document.getElementById('vhs-shift');
             const scanlineSlider = document.getElementById('vhs-scanline');
             const noiseSlider = document.getElementById('vhs-noise');
-
+            
             const updateVHSEffect = () => {
                 const effect = activeEffects.find(e => e.name === 'vhs');
                 if (effect) {
@@ -206,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.getElementById('vhs-noise-value').textContent = noiseSlider.value + '%';
                 }
             };
-
+            
             warpSlider.addEventListener('input', updateVHSEffect);
             shiftSlider.addEventListener('input', updateVHSEffect);
             scanlineSlider.addEventListener('input', updateVHSEffect);
@@ -215,9 +245,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function processEffects() {
-        if (!currentImage || activeEffects.length === 0) return;
+        if (!currentImage || activeEffects.length === 0 || processing) return;
 
         try {
+            processing = true;
+            applyBtn.disabled = true;
+            applyBtn.textContent = 'PROCESSING...';
+            
             const response = await fetch('/process', {
                 method: 'POST',
                 headers: {
@@ -228,22 +262,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     effects: activeEffects
                 })
             });
+
+            if (!response.ok) {
+                throw new Error('Server error');
+            }
+
             const data = await response.json();
 
             if (data.error) {
-                alert(data.error);
-                return;
+                throw new Error(data.error);
             }
 
             // Update preview
             const img = new Image();
-            img.src = data.processed_url;
+            img.src = data.processed_url + '?t=' + Date.now(); // Cache busting
             img.onload = () => {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                processing = false;
+                applyBtn.disabled = false;
+                applyBtn.textContent = 'APPLY EFFECT';
+            };
+            img.onerror = () => {
+                throw new Error('Failed to load processed image');
             };
         } catch (error) {
+            console.error('Processing error:', error);
             alert('Processing failed: ' + error.message);
+            processing = false;
+            applyBtn.disabled = false;
+            applyBtn.textContent = 'APPLY EFFECT';
         }
     }
 
@@ -252,6 +300,10 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('No image to export!');
             return;
         }
-        alert('Export functionality would save the processed image');
+        
+        const link = document.createElement('a');
+        link.download = 'retrofx-' + (activeEffects[0]?.name || 'processed') + '.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
     }
 });

@@ -41,7 +41,7 @@ h1 {
     text-shadow: 0 0 5px var(--neon-green), 0 0 10px var(--neon-pink);
 }
 
-#export-btn {
+#export-btn, #apply-btn {
     background: #000;
     border: 2px solid var(--neon-pink);
     color: var(--neon-pink);
@@ -51,26 +51,14 @@ h1 {
     font-size: 0.8rem;
 }
 
-#export-btn:hover {
+#export-btn:hover, #apply-btn:hover {
     background: var(--neon-pink);
     color: #000;
 }
 
 #apply-btn {
-    background: #000;
-    border: 2px solid var(--neon-green);
-    color: var(--neon-green);
-    padding: 10px 15px;
-    font-family: inherit;
-    cursor: pointer;
-    font-size: 0.8rem;
     width: 100%;
     margin-top: 15px;
-}
-
-#apply-btn:hover {
-    background: var(--neon-green);
-    color: #000;
 }
 
 .workspace {
@@ -109,8 +97,18 @@ h1 {
     font-size: 0.7rem;
 }
 
+.effect-category button[data-effect="vhs"] {
+    border-color: var(--neon-pink);
+    color: var(--neon-pink);
+}
+
 .effect-category button:hover {
     background: var(--neon-green);
+    color: black;
+}
+
+.effect-category button[data-effect="vhs"]:hover {
+    background: var(--neon-pink);
     color: black;
 }
 
@@ -172,6 +170,7 @@ h1 {
     display: block;
     margin: 10px 0;
     font-size: 0.7rem;
+    color: var(--neon-green);
 }
 
 input[type="range"] {
@@ -230,6 +229,11 @@ input[type="checkbox"]:checked::after {
     font-size: 0.7rem;
 }
 
+.active-effect[data-effect="vhs"] {
+    border-color: var(--neon-pink);
+    background: rgba(255, 0, 255, 0.2);
+}
+
 .remove-effect {
     background: none;
     border: none;
@@ -266,28 +270,4 @@ input[type="checkbox"]:checked::after {
     .effect-category button {
         font-size: 0.8rem;
     }
-}
-
-.control-group h4 {
-    color: var(--neon-pink);
-    margin-top: 0;
-    text-shadow: 0 0 5px var(--neon-pink);
-    font-size: 0.9rem;
-}
-
-.control-group label {
-    display: block;
-    margin: 10px 0;
-    font-size: 0.7rem;
-    color: var(--neon-green);
-}
-
-.effect-category button[data-effect="vhs"] {
-    border-color: var(--neon-pink);
-    color: var(--neon-pink);
-}
-
-.effect-category button[data-effect="vhs"]:hover {
-    background: var(--neon-pink);
-    color: black;
 }

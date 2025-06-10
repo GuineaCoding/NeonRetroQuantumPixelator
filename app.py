@@ -3,6 +3,7 @@ from flask import Flask, request, render_template, jsonify
 from werkzeug.utils import secure_filename
 from PIL import Image
 import time
+import numpy as np
 
 app = Flask(__name__)
 
@@ -34,31 +35,9 @@ def pixelate_image(img, pixel_size=10, palette_size=16, dither=True):
     
     return result.convert('RGB')
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/upload', methods=['POST'])
-def upload():
-    if 'image' not in request.files:
-        return jsonify({'error': 'No file uploaded'}), 400
-    
-    file = request.files['image']
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
-    
-    if file and allowed_file(file.filename):
-        filename = f"{int(time.time())}_{secure_filename(file.filename)}"
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-        file.save(filepath)
-        return jsonify({'filename': filename})
-    
-    return jsonify({'error': 'Invalid file type'}), 400
-
 def vhs_glitch_effect(img, warp_intensity=5, color_shift=2, scanline_intensity=0.5, noise_amount=0.3):
     """Apply VHS-style glitch effects"""
-    import numpy as np
-    from PIL import Image, ImageDraw, ImageOps
+    from PIL import ImageDraw
     
     # Convert to numpy array for processing
     arr = np.array(img)
@@ -82,7 +61,9 @@ def vhs_glitch_effect(img, warp_intensity=5, color_shift=2, scanline_intensity=0
         draw = ImageDraw.Draw(overlay)
         for y in range(0, img.size[1], 2):
             draw.line([(0, y), (img.size[0], y)], fill=int(255 * (1 - scanline_intensity)))
-        arr = np.minimum(arr, np.array(overlay)[..., np.newaxis])
+        arr = np.minimum(shifted, np.array(overlay)[..., np.newaxis])
+    else:
+        arr = shifted
     
     # 4. Noise
     if noise_amount > 0:
@@ -93,7 +74,27 @@ def vhs_glitch_effect(img, warp_intensity=5, color_shift=2, scanline_intensity=0
     
     return Image.fromarray(arr.astype('uint8'))
 
-# Update the process function to handle VHS effect
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/upload', methods=['POST'])
+def upload():
+    if 'image' not in request.files:
+        return jsonify({'error': 'No file uploaded'}), 400
+    
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    
+    if file and allowed_file(file.filename):
+        filename = f"{int(time.time())}_{secure_filename(file.filename)}"
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(filepath)
+        return jsonify({'filename': filename})
+    
+    return jsonify({'error': 'Invalid file type'}), 400
+
 @app.route('/process', methods=['POST'])
 def process():
     data = request.json
